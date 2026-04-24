@@ -4,7 +4,7 @@
 [![CI](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices/branch/main/graph/badge.svg)](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices)
 [![License](https://img.shields.io/github/license/DeSouzaRafael/go-fintech-microservices.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/blob/main/LICENSE)
-[![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](https://go.dev/)
 
 High-scale digital wallet platform built with Go microservices, demonstrating advanced distributed systems patterns: CQRS, Event Sourcing, Saga, Transactional Outbox, and full observability.
 
@@ -42,7 +42,7 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 
 | Layer | Technology |
 |-------|------------|
-| Language | Go 1.22+ |
+| Language | Go 1.25+ |
 | RPC | gRPC + Protocol Buffers |
 | REST exposure | grpc-gateway |
 | Messaging | Apache Kafka (Redpanda in dev) |
@@ -78,15 +78,15 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] GitHub Actions: lint + build pipeline
 
 ### 2 — Identity & Wallet
-- [ ] Identity Service: signup, login, JWT issuance
-- [ ] Identity Service: refresh tokens, logout, JWT validation endpoint
-- [ ] Wallet Service: event store schema in PostgreSQL
-- [ ] Wallet Service: `Wallet` aggregate with domain events
-- [ ] Wallet Service: `CreateWallet`, `Deposit`, `Withdraw` commands
-- [ ] Wallet Service: state reconstruction via event replay
-- [ ] Wallet Service: snapshots every N events for performance
-- [ ] Unit tests for wallet domain (pure Go, no I/O)
-- [ ] Integration tests with testcontainers-go
+- [x] Identity Service: signup, login, JWT issuance
+- [x] Identity Service: refresh tokens, logout, JWT validation endpoint
+- [x] Wallet Service: event store schema in PostgreSQL
+- [x] Wallet Service: `Wallet` aggregate with domain events
+- [x] Wallet Service: `CreateWallet`, `Deposit`, `Withdraw` commands
+- [x] Wallet Service: state reconstruction via event replay
+- [x] Wallet Service: snapshots every N events for performance
+- [x] Unit tests for wallet domain (pure Go, no I/O)
+- [x] Integration tests with testcontainers-go
 
 ### 3 — Transactions & Saga
 - [ ] Transaction Service: `TransactionInitiated` → Kafka
