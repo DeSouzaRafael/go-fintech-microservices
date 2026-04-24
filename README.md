@@ -101,15 +101,15 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] Integration tests: happy path + simulated failures
 
 ### 4 — Fraud & Notifications
-- [ ] Fraud Service: daily limit rule
-- [ ] Fraud Service: velocity check (N txns in T seconds)
-- [ ] Fraud Service: user risk profile cache in Redis
+- [x] Fraud Service: daily limit rule
+- [x] Fraud Service: velocity check (N txns in T seconds)
+- [x] Fraud Service: user risk profile cache in Redis
 - [ ] Fraud Service: async profile update via Kafka consumer
 - [ ] Transaction Service: call Fraud before committing
-- [ ] Notification Service: consume `TransactionCompleted`
-- [ ] Notification Service: consume `TransactionFailed`
-- [ ] Notification Service: consume `FraudDetected`
-- [ ] Notification Service: idempotency via processed events table
+- [x] Notification Service: consume `TransactionCompleted`
+- [x] Notification Service: consume `TransactionFailed`
+- [x] Notification Service: consume `FraudDetected`
+- [x] Notification Service: idempotency via processed events table
 - [ ] API Gateway: rate limiting per user (Redis token bucket)
 
 ### 5 — CQRS & API Gateway
