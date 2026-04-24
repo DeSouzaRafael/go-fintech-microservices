@@ -113,12 +113,12 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [ ] API Gateway: rate limiting per user (Redis token bucket)
 
 ### 5 — CQRS & API Gateway
-- [ ] Query Service: consume wallet events, build balance projection
-- [ ] Query Service: consume transaction events, build statement projection
-- [ ] Query Service: paginated statement endpoint (gRPC + REST)
-- [ ] Query Service: per-user statistics projection
+- [x] Query Service: consume wallet events, build balance projection
+- [x] Query Service: consume transaction events, build statement projection
+- [x] Query Service: paginated statement endpoint (gRPC + REST)
+- [x] Query Service: per-user statistics projection
 - [ ] API Gateway: full grpc-gateway setup
-- [ ] API Gateway: JWT validation middleware
+- [x] API Gateway: JWT validation middleware
 - [ ] API Gateway: route all services
 - [ ] OpenAPI spec generated from proto annotations
 
