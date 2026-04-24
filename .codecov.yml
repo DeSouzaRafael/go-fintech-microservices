@@ -1,0 +1,33 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+    patch:
+      default:
+        target: 70%
+
+ignore:
+  - "api/proto/**"
+  - "third_party/**"
+  - "**/cmd/**"
+  - "**/*.pb.go"
+  - "**/*.pb.gw.go"
+  - "**/mock_*.go"
+  - "pkg/kafka/**"
+  - "pkg/logger/**"
+  - "pkg/tracing/**"
+  - "pkg/metrics/**"
+  - "pkg/server/**"
+  - "pkg/breaker/**"
+  - "**/adapters/outbound/kafka/**"
+  - "**/adapters/outbound/redis/**"
+  - "**/adapters/outbound/logger/**"
+  - "**/adapters/outbound/grpc/**"
+  - "**/adapters/outbound/postgres/**"
+  - "services/gateway/internal/router/**"
+  - "services/gateway/internal/middleware/ratelimit.go"
+  - "services/identity/internal/adapters/inbound/grpc/**"
+  - "services/notification/internal/adapters/outbound/postgres/**"
+  - "services/fraud/internal/adapters/inbound/kafka/profile_updater.go"

@@ -186,3 +186,52 @@ func TestAuthService_Logout(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func TestAuthService_Register_DuplicateEmail(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	_, err := svc.Register(ctx, "dup@test.com", "pass", "User")
+	require.NoError(t, err)
+	_, err = svc.Register(ctx, "dup@test.com", "pass", "User")
+	require.Error(t, err)
+	var de *apperrors.DomainError
+	require.ErrorAs(t, err, &de)
+	assert.Equal(t, apperrors.CodeAlreadyExists, de.Code)
+}
+
+func TestAuthService_Login_WrongPassword(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	_, _ = svc.Register(ctx, "wrongpw@test.com", "correct", "User")
+	_, err := svc.Login(ctx, "wrongpw@test.com", "wrong")
+	require.Error(t, err)
+}
+
+func TestAuthService_Login_UnknownEmail(t *testing.T) {
+	svc := newTestService()
+	_, err := svc.Login(context.Background(), "nobody@test.com", "pass")
+	require.Error(t, err)
+}
+
+func TestAuthService_Refresh_ExpiredToken(t *testing.T) {
+	svc := NewAuthService(newMemUserRepo(), newMemTokenRepo(), Config{
+		JWTSecret:       "test-secret-key",
+		AccessTokenTTL:  15 * time.Minute,
+		RefreshTokenTTL: -time.Second,
+	})
+	ctx := context.Background()
+	_, _ = svc.Register(ctx, "exp@test.com", "pass", "User")
+	login, err := svc.Login(ctx, "exp@test.com", "pass")
+	require.NoError(t, err)
+	_, err = svc.Refresh(ctx, login.RefreshToken)
+	require.Error(t, err)
+}
+
+func TestAuthService_ValidateToken_InvalidSubject(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	_, _ = svc.Register(ctx, "sub@test.com", "pass", "User")
+	login, _ := svc.Login(ctx, "sub@test.com", "pass")
+	_, err := svc.ValidateToken(ctx, login.AccessToken+"tampered")
+	require.Error(t, err)
+}
