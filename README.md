@@ -78,14 +78,14 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] GitHub Actions: lint + build pipeline
 
 ### 2 — Identity & Wallet
-- [ ] Identity Service: signup, login, JWT issuance
-- [ ] Identity Service: refresh tokens, logout, JWT validation endpoint
-- [ ] Wallet Service: event store schema in PostgreSQL
-- [ ] Wallet Service: `Wallet` aggregate with domain events
-- [ ] Wallet Service: `CreateWallet`, `Deposit`, `Withdraw` commands
-- [ ] Wallet Service: state reconstruction via event replay
-- [ ] Wallet Service: snapshots every N events for performance
-- [ ] Unit tests for wallet domain (pure Go, no I/O)
+- [x] Identity Service: signup, login, JWT issuance
+- [x] Identity Service: refresh tokens, logout, JWT validation endpoint
+- [x] Wallet Service: event store schema in PostgreSQL
+- [x] Wallet Service: `Wallet` aggregate with domain events
+- [x] Wallet Service: `CreateWallet`, `Deposit`, `Withdraw` commands
+- [x] Wallet Service: state reconstruction via event replay
+- [x] Wallet Service: snapshots every N events for performance
+- [x] Unit tests for wallet domain (pure Go, no I/O)
 - [ ] Integration tests with testcontainers-go
 
 ### 3 — Transactions & Saga

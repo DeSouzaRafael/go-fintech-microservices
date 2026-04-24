@@ -51,7 +51,10 @@ func (s *EventStore) AppendEvents(ctx context.Context, walletID uuid.UUID, event
 		}
 	}
 
-	return errors.Wrap(errors.CodeInternal, "commit transaction", tx.Commit())
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(errors.CodeInternal, "commit transaction", err)
+	}
+	return nil
 }
 
 func (s *EventStore) LoadEvents(ctx context.Context, walletID uuid.UUID, afterVersion int64) ([]domain.Event, error) {
