@@ -67,6 +67,8 @@ func ToGRPC(err error) error {
 		return status.Error(codes.FailedPrecondition, de.Message)
 	case CodeConflict:
 		return status.Error(codes.AlreadyExists, de.Message)
+	case CodeInternal:
+		return status.Error(codes.Internal, de.Message)
 	default:
 		return status.Error(codes.Internal, de.Message)
 	}

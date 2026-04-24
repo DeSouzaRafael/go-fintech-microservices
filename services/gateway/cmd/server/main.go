@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -15,8 +16,15 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	log := logger.MustNew(getEnv("LOG_LEVEL", "info"))
-	defer log.Sync()
+	defer func() { _ = log.Sync() }()
 
 	ctx := context.Background()
 
@@ -27,9 +35,9 @@ func main() {
 		SampleRate:     1.0,
 	})
 	if err != nil {
-		log.Fatal("tracing setup failed", zap.Error(err))
+		return fmt.Errorf("tracing setup: %w", err)
 	}
-	defer shutdown(ctx)
+	defer func() { _ = shutdown(ctx) }()
 
 	chain := middleware.ChainUnary(
 		middleware.UnaryRecovery(log),
@@ -47,9 +55,9 @@ func main() {
 		middleware.WithUnaryInterceptor(chain),
 	)
 
-	if err := srv.Run(ctx); err != nil {
-		log.Fatal("server error", zap.Error(err))
-	}
+	log.Info("starting server", zap.String("service", "gateway"), zap.Int("port", getEnvInt("PORT", 50051)))
+
+	return srv.Run(ctx)
 }
 
 func getEnv(key, fallback string) string {
