@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: fintech
       POSTGRES_PASSWORD: fintech
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - postgres-identity:/var/lib/postgresql/data
     healthcheck:
@@ -141,7 +141,7 @@ services:
     environment:
       KAFKA_BROKERS: redpanda:9092
     ports:
-      - "8080:8080"
+      - "18080:8080"
     depends_on:
       - redpanda
 
@@ -169,7 +169,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "13000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin

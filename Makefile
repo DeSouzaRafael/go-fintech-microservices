@@ -4,7 +4,7 @@ DB_HOST   ?= localhost
 DB_USER   ?= fintech
 DB_PASS   ?= fintech
 
-DB_PORT_identity     ?= 5432
+DB_PORT_identity     ?= 15432
 DB_PORT_wallet       ?= 5433
 DB_PORT_transaction  ?= 5434
 DB_PORT_fraud        ?= 5435
