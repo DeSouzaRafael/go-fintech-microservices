@@ -38,6 +38,8 @@ func (c *FraudClient) Evaluate(ctx context.Context, txID, userID, walletID uuid.
 		return "REJECTED", nil
 	case fraudv1.Decision_DECISION_REVIEW:
 		return "REVIEW", nil
+	case fraudv1.Decision_DECISION_APPROVED, fraudv1.Decision_DECISION_UNSPECIFIED:
+		return "APPROVED", nil
 	default:
 		return "APPROVED", nil
 	}
