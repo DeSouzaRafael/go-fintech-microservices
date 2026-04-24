@@ -2,6 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/DeSouzaRafael/go-fintech-microservices)](https://goreportcard.com/report/github.com/DeSouzaRafael/go-fintech-microservices)
 [![CI](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices/branch/main/graph/badge.svg)](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices)
 [![License](https://img.shields.io/github/license/DeSouzaRafael/go-fintech-microservices.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/blob/main/LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?logo=go)](https://go.dev/)
 

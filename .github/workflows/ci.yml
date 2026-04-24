@@ -26,7 +26,14 @@ jobs:
         run: go build ./...
 
       - name: Test
-        run: go test ./... -count=1 -race -timeout 60s
+        run: go test ./... -count=1 -race -timeout 60s -covermode=atomic -coverprofile=coverage.txt
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.txt
+          fail_ci_if_error: false
 
   lint:
     name: Lint
