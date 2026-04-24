@@ -104,22 +104,22 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] Fraud Service: daily limit rule
 - [x] Fraud Service: velocity check (N txns in T seconds)
 - [x] Fraud Service: user risk profile cache in Redis
-- [ ] Fraud Service: async profile update via Kafka consumer
-- [ ] Transaction Service: call Fraud before committing
+- [x] Fraud Service: async profile update via Kafka consumer
+- [x] Transaction Service: call Fraud before committing
 - [x] Notification Service: consume `TransactionCompleted`
 - [x] Notification Service: consume `TransactionFailed`
 - [x] Notification Service: consume `FraudDetected`
 - [x] Notification Service: idempotency via processed events table
-- [ ] API Gateway: rate limiting per user (Redis token bucket)
+- [x] API Gateway: rate limiting per user (Redis token bucket)
 
 ### 5 — CQRS & API Gateway
 - [x] Query Service: consume wallet events, build balance projection
 - [x] Query Service: consume transaction events, build statement projection
 - [x] Query Service: paginated statement endpoint (gRPC + REST)
 - [x] Query Service: per-user statistics projection
-- [ ] API Gateway: full grpc-gateway setup
+- [x] API Gateway: full grpc-gateway setup
 - [x] API Gateway: JWT validation middleware
-- [ ] API Gateway: route all services
+- [x] API Gateway: route all services
 - [ ] OpenAPI spec generated from proto annotations
 
 ### 6 — Observability, Resilience & Load

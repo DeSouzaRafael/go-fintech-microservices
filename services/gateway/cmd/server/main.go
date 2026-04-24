@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -10,9 +11,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/logger"
-	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/middleware"
-	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/server"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/tracing"
+	"github.com/DeSouzaRafael/go-fintech-microservices/services/gateway/internal/middleware"
+	"github.com/DeSouzaRafael/go-fintech-microservices/services/gateway/internal/router"
 )
 
 func main() {
@@ -39,25 +40,42 @@ func run() error {
 	}
 	defer func() { _ = shutdown(ctx) }()
 
-	chain := middleware.ChainUnary(
-		middleware.UnaryRecovery(log),
-		middleware.UnaryTracing(),
-		middleware.UnaryLogging(log),
-		middleware.UnaryIDempotency(),
-	)
+	gwMux, err := router.New(ctx, router.Config{
+		IdentityAddr:    getEnv("IDENTITY_ADDR", "localhost:50052"),
+		WalletAddr:      getEnv("WALLET_ADDR", "localhost:50053"),
+		TransactionAddr: getEnv("TRANSACTION_ADDR", "localhost:50054"),
+		QueryAddr:       getEnv("QUERY_ADDR", "localhost:50057"),
+	})
+	if err != nil {
+		return fmt.Errorf("gateway router: %w", err)
+	}
 
-	srv := server.NewGRPC(
-		server.Config{
-			Port:            getEnvInt("PORT", 50051),
-			ShutdownTimeout: 30 * time.Second,
-		},
-		log,
-		middleware.WithUnaryInterceptor(chain),
-	)
+	jwtSecret := getEnv("JWT_SECRET", "change-me-in-production")
+	authMw := middleware.NewAuthMiddleware(jwtSecret)
+	handler := authMw.Handler(gwMux)
 
-	log.Info("starting server", zap.String("service", "gateway"), zap.Int("port", getEnvInt("PORT", 50051)))
+	addr := fmt.Sprintf(":%d", getEnvInt("PORT", 8080))
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
-	return srv.Run(ctx)
+	log.Info("gateway listening", zap.String("addr", addr))
+
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutdownCtx)
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

@@ -7,12 +7,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
+	fraudv1 "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/fraud/v1"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/logger"
-	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/middleware"
+	pkgmw "github.com/DeSouzaRafael/go-fintech-microservices/pkg/middleware"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/server"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/tracing"
+	fraudgrpc "github.com/DeSouzaRafael/go-fintech-microservices/services/fraud/internal/adapters/inbound/grpc"
+	fraudkafka "github.com/DeSouzaRafael/go-fintech-microservices/services/fraud/internal/adapters/inbound/kafka"
+	redisrepo "github.com/DeSouzaRafael/go-fintech-microservices/services/fraud/internal/adapters/outbound/redis"
+	"github.com/DeSouzaRafael/go-fintech-microservices/services/fraud/internal/application"
 )
 
 func main() {
@@ -39,11 +45,24 @@ func run() error {
 	}
 	defer func() { _ = shutdown(ctx) }()
 
-	chain := middleware.ChainUnary(
-		middleware.UnaryRecovery(log),
-		middleware.UnaryTracing(),
-		middleware.UnaryLogging(log),
-		middleware.UnaryIDempotency(),
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: getEnv("REDIS_ADDR", "localhost:6379"),
+	})
+
+	profileRepo := redisrepo.NewProfileRepository(redisClient)
+	fraudSvc := application.NewFraudService(profileRepo)
+
+	brokers := []string{getEnv("KAFKA_BROKERS", "localhost:9092")}
+	updater, err := fraudkafka.NewProfileUpdater(profileRepo, brokers, log)
+	if err != nil {
+		return fmt.Errorf("kafka profile updater: %w", err)
+	}
+	go updater.Run(ctx)
+
+	chain := pkgmw.ChainUnary(
+		pkgmw.UnaryRecovery(log),
+		pkgmw.UnaryTracing(),
+		pkgmw.UnaryLogging(log),
 	)
 
 	srv := server.NewGRPC(
@@ -52,8 +71,10 @@ func run() error {
 			ShutdownTimeout: 30 * time.Second,
 		},
 		log,
-		middleware.WithUnaryInterceptor(chain),
+		pkgmw.WithUnaryInterceptor(chain),
 	)
+
+	fraudv1.RegisterFraudServiceServer(srv.Server(), fraudgrpc.NewServer(fraudSvc))
 
 	log.Info("starting server", zap.String("service", "fraud"), zap.Int("port", getEnvInt("PORT", 50051)))
 
