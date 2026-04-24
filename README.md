@@ -1,1 +1,181 @@
-# go-fintech-microservices
+# Fintech Microservices Platform
+
+High-scale digital wallet platform built with Go microservices, demonstrating advanced distributed systems patterns: CQRS, Event Sourcing, Saga, Transactional Outbox, and full observability.
+
+## Architecture
+
+```
+                         ┌─────────────────┐
+                         │   API Gateway   │
+                         │  REST → gRPC    │
+                         └────────┬────────┘
+                                  │ gRPC
+          ┌──────────┬────────────┼─────────────┬──────────┐
+          │          │            │             │          │
+   ┌──────▼──┐ ┌─────▼──────┐ ┌───▼────┐ ┌──────▼──┐ ┌─────▼──────┐
+   │Identity │ │  Wallet    │ │  Txn   │ │  Fraud  │ │   Query    │
+   │Service  │ │ (Event     │ │Service │ │Detection│ │  Service   │
+   │         │ │  Sourced)  │ │ (Saga) │ │         │ │(Read Model)│
+   └──────┬──┘ └─────┬──────┘ └───┬────┘ └──────┬──┘ └─────┬──────┘
+          │          │            │             │          │
+          └──────────┴────────────┴─────────────┴──────────┘
+                                  │
+                            ┌─────▼─────┐
+                            │   Kafka   │
+                            └─────┬─────┘
+                                  │
+                         ┌────────▼────────┐
+                         │  Notification   │
+                         │    Service      │
+                         └─────────────────┘
+```
+
+Each service owns its database (PostgreSQL). Redis for caching and rate limiting.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Language | Go 1.22+ |
+| RPC | gRPC + Protocol Buffers |
+| REST exposure | grpc-gateway |
+| Messaging | Apache Kafka (Redpanda in dev) |
+| Databases | PostgreSQL 16 (per service) |
+| Cache | Redis 7 |
+| Observability | OpenTelemetry → Jaeger + Prometheus + Grafana |
+| Testing | testify + testcontainers-go + k6 |
+| CI/CD | GitHub Actions |
+
+## Services
+
+| Service | Responsibility | Pattern |
+|---------|----------------|---------|
+| `identity` | Auth, JWT, KYC | Standard |
+| `wallet` | Balances, accounts | **Event Sourcing** |
+| `transaction` | Transfer orchestration | **Saga (choreography)** |
+| `fraud` | Risk evaluation | Rules engine |
+| `notification` | Async notifications | Idempotent consumer |
+| `query` | Read projections | **CQRS Read Model** |
+| `gateway` | Ingress, JWT auth, rate limit | Reverse proxy |
+
+## Implementation Roadmap
+
+### 1 — Foundation
+- [ ] Monorepo structure with all service skeletons
+- [ ] Shared `.proto` contracts (`wallet.proto`, `transaction.proto`, `identity.proto`)
+- [ ] `pkg/logger` — structured JSON logging (zap)
+- [ ] `pkg/tracing` — OpenTelemetry SDK setup
+- [ ] `pkg/errors` — standardized error types
+- [ ] `pkg/middleware` — gRPC interceptors (auth, tracing, logging, recovery)
+- [ ] Docker Compose: PostgreSQL, Redis, Redpanda, Jaeger, Prometheus, Grafana
+- [ ] Service skeleton with gRPC + OTel + graceful shutdown
+- [ ] "Hello world" gRPC endpoint with traces visible in Jaeger
+- [ ] GitHub Actions: lint + build pipeline
+
+### 2 — Identity & Wallet
+- [ ] Identity Service: signup, login, JWT issuance
+- [ ] Identity Service: refresh tokens, logout, JWT validation endpoint
+- [ ] Wallet Service: event store schema in PostgreSQL
+- [ ] Wallet Service: `Wallet` aggregate with domain events
+- [ ] Wallet Service: `CreateWallet`, `Deposit`, `Withdraw` commands
+- [ ] Wallet Service: state reconstruction via event replay
+- [ ] Wallet Service: snapshots every N events for performance
+- [ ] Unit tests for wallet domain (pure Go, no I/O)
+- [ ] Integration tests with testcontainers-go
+
+### 3 — Transactions & Saga
+- [ ] Transaction Service: `TransactionInitiated` → Kafka
+- [ ] Wallet Service: consume `TransactionInitiated`, reserve funds → `FundsReserved`
+- [ ] Transaction Service: consume `FundsReserved`, trigger credit
+- [ ] Wallet Service: credit destination → `FundsDeposited`
+- [ ] Transaction Service: `TransactionCompleted`
+- [ ] Compensation flow: `FundsReleased` on failure
+- [ ] Transactional Outbox in Wallet and Transaction services
+- [ ] Outbox worker: poll → publish → mark sent
+- [ ] Idempotency via `event_id` deduplication table
+- [ ] Integration tests: happy path + simulated failures
+
+### 4 — Fraud & Notifications
+- [ ] Fraud Service: daily limit rule
+- [ ] Fraud Service: velocity check (N txns in T seconds)
+- [ ] Fraud Service: user risk profile cache in Redis
+- [ ] Fraud Service: async profile update via Kafka consumer
+- [ ] Transaction Service: call Fraud before committing
+- [ ] Notification Service: consume `TransactionCompleted`
+- [ ] Notification Service: consume `TransactionFailed`
+- [ ] Notification Service: consume `FraudDetected`
+- [ ] Notification Service: idempotency via processed events table
+- [ ] API Gateway: rate limiting per user (Redis token bucket)
+
+### 5 — CQRS & API Gateway
+- [ ] Query Service: consume wallet events, build balance projection
+- [ ] Query Service: consume transaction events, build statement projection
+- [ ] Query Service: paginated statement endpoint (gRPC + REST)
+- [ ] Query Service: per-user statistics projection
+- [ ] API Gateway: full grpc-gateway setup
+- [ ] API Gateway: JWT validation middleware
+- [ ] API Gateway: route all services
+- [ ] OpenAPI spec generated from proto annotations
+
+### 6 — Observability, Resilience & Load
+- [ ] Grafana dashboards: RED metrics per service
+- [ ] Grafana dashboards: p50/p95/p99 latency panels
+- [ ] Grafana dashboards: Kafka consumer lag
+- [ ] Circuit breakers (`sony/gobreaker`) on inter-service calls
+- [ ] Retry with exponential backoff on Kafka publish
+- [ ] k6 load test: 1,000 TPS baseline
+- [ ] k6 load test: 10,000 TPS stress
+- [ ] Architecture Decision Records (ADRs)
+- [ ] Distributed trace screenshots (Jaeger)
+- [ ] Load test results in `docs/`
+
+## Project Structure
+
+```
+fintech-platform/
+├── api/proto/
+├── pkg/
+│   ├── logger/
+│   ├── tracing/
+│   ├── errors/
+│   └── middleware/
+├── services/
+│   ├── identity/
+│   ├── wallet/
+│   ├── transaction/
+│   ├── fraud/
+│   ├── notification/
+│   ├── query/
+│   └── gateway/
+├── deploy/
+│   ├── docker-compose.yml
+│   └── grafana/
+├── scripts/
+├── tests/
+│   ├── integration/
+│   └── load/
+└── docs/
+    ├── architecture.md
+    └── adr/
+```
+
+Each service: hexagonal architecture — `cmd/`, `internal/domain/`, `internal/application/`, `internal/adapters/`.
+
+## Running Locally
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d
+
+make build
+make test
+make test-integration
+```
+
+## Non-Functional Targets
+
+| Metric | Target |
+|--------|--------|
+| Throughput | 10,000 TPS |
+| p99 latency (sync ops) | < 200ms |
+| Availability per service | 99.9% |
+| Event store | Immutable, append-only |
