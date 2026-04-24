@@ -90,9 +90,9 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 
 ### 3 — Transactions & Saga
 - [x] Transaction Service: `TransactionInitiated` → Kafka
-- [ ] Wallet Service: consume `TransactionInitiated`, reserve funds → `FundsReserved`
-- [ ] Transaction Service: consume `FundsReserved`, trigger credit
-- [ ] Wallet Service: credit destination → `FundsDeposited`
+- [x] Wallet Service: consume `TransactionInitiated`, reserve funds → `FundsReserved`
+- [x] Transaction Service: consume `FundsReserved`, trigger credit
+- [x] Wallet Service: credit destination → `FundsDeposited`
 - [x] Transaction Service: `TransactionCompleted`
 - [x] Compensation flow: `FundsReleased` on failure
 - [x] Transactional Outbox in Wallet and Transaction services
