@@ -131,8 +131,8 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] k6 load test: 1,000 TPS baseline
 - [x] k6 load test: 10,000 TPS stress
 - [x] Architecture Decision Records (ADRs)
-- [ ] Distributed trace screenshots (Jaeger)
-- [ ] Load test results in `docs/`
+- [x] Distributed trace screenshots (Jaeger) — see [`docs/observability.md`](docs/observability.md)
+- [x] Load test results in `docs/` — see [`docs/load-test-results.md`](docs/load-test-results.md)
 
 ## Project Structure
 
