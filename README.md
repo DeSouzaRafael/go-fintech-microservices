@@ -4,7 +4,7 @@
 [![CI](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices/branch/main/graph/badge.svg)](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices)
 [![License](https://img.shields.io/github/license/DeSouzaRafael/go-fintech-microservices.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/blob/main/LICENSE)
-[![Go Version](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/go-1.25.9-00ADD8?logo=go)](https://go.dev/)
 
 High-scale digital wallet platform built with Go microservices, demonstrating advanced distributed systems patterns: CQRS, Event Sourcing, Saga, Transactional Outbox, and full observability.
 
@@ -68,7 +68,7 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 
 ### 1 — Foundation
 - [x] Monorepo structure with all service skeletons
-- [x] Shared `.proto` contracts (`wallet.proto`, `transaction.proto`, `identity.proto`)
+- [x] Shared `.proto` contracts (`wallet.proto`, `transaction.proto`, `identity.proto`, `fraud.proto`, `query.proto`)
 - [x] `pkg/logger` — structured JSON logging (zap)
 - [x] `pkg/tracing` — OpenTelemetry SDK setup
 - [x] `pkg/errors` — standardized error types
@@ -137,32 +137,34 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 ## Project Structure
 
 ```
-fintech-platform/
-├── api/proto/
+go-fintech-microservices/
+├── api/proto/                  # .proto sources + generated Go stubs (*/v1/)
+├── third_party/googleapis/     # google/api protos for grpc-gateway annotations
 ├── pkg/
-│   ├── logger/
-│   ├── tracing/
-│   ├── errors/
-│   ├── middleware/
-│   └── server/
+│   ├── breaker/                # sony/gobreaker circuit breaker wrapper
+│   ├── errors/                 # domain error types + gRPC mapping
+│   ├── kafka/                  # franz-go consumer wrapper
+│   ├── logger/                 # zap structured logging
+│   ├── metrics/                # OTel Prometheus exporter
+│   ├── middleware/             # gRPC interceptors (auth, tracing, logging, recovery)
+│   ├── server/                 # gRPC server with graceful shutdown
+│   └── tracing/                # OTel SDK + OTLP exporter setup
 ├── services/
-│   ├── identity/
-│   ├── wallet/
-│   ├── transaction/
-│   ├── fraud/
-│   ├── notification/
-│   ├── query/
-│   └── gateway/
+│   ├── identity/               # Auth, JWT, refresh tokens
+│   ├── wallet/                 # Event Sourcing, saga consumer
+│   ├── transaction/            # Saga orchestration, fraud check
+│   ├── fraud/                  # Rules engine, Redis profile cache
+│   ├── notification/           # Idempotent Kafka consumer
+│   ├── query/                  # CQRS read model
+│   └── gateway/                # grpc-gateway HTTP proxy, JWT + rate limit
 ├── deploy/
-│   ├── docker-compose.yml
-│   └── grafana/
-├── scripts/
+│   ├── docker-compose.yml      # Postgres ×6, Redis, Redpanda, Jaeger, Prometheus, Grafana
+│   └── grafana/                # dashboards + provisioning
 ├── tests/
-│   ├── integration/
-│   └── load/
+│   └── load/                   # k6 baseline (1k TPS) and stress (10k TPS) scripts
 └── docs/
-    ├── architecture.md
-    └── adr/
+    ├── openapi/fintech.swagger.json
+    └── adr/                    # Architecture Decision Records (001–004)
 ```
 
 Each service: hexagonal architecture — `cmd/`, `internal/domain/`, `internal/application/`, `internal/adapters/`.
@@ -170,12 +172,29 @@ Each service: hexagonal architecture — `cmd/`, `internal/domain/`, `internal/a
 ## Running Locally
 
 ```bash
+# 1. Start infrastructure (Postgres, Redis, Redpanda, Jaeger, Prometheus, Grafana)
 docker compose -f deploy/docker-compose.yml up -d
 
+# 2. Run database migrations
+make migrate-up
+
+# 3. Build all services
 make build
+
+# 4. Run tests
 make test
-make test-integration
+
+# Regenerate proto stubs + OpenAPI spec
+make proto
 ```
+
+| UI | URL |
+|----|-----|
+| Redpanda Console | http://localhost:18080 |
+| Grafana | http://localhost:13000 (admin/admin) |
+| Jaeger | http://localhost:16686 |
+| Prometheus | http://localhost:9090 |
+| OpenAPI spec | `docs/openapi/fintech.swagger.json` |
 
 ## Non-Functional Targets
 
