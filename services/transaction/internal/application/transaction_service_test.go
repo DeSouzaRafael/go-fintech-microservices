@@ -70,8 +70,14 @@ func (r *memOutboxRepo) MarkPublished(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
 
+type stubFraud struct{ decision string }
+
+func (f *stubFraud) Evaluate(_ context.Context, _, _, _ uuid.UUID, _ int64) (string, error) {
+	return f.decision, nil
+}
+
 func newTestService() *TransactionService {
-	return NewTransactionService(newMemTxRepo(), &memOutboxRepo{})
+	return NewTransactionService(newMemTxRepo(), &memOutboxRepo{}, &stubFraud{decision: "APPROVED"})
 }
 
 func TestTransactionService_InitiateTransfer(t *testing.T) {
@@ -96,6 +102,15 @@ func TestTransactionService_InitiateTransfer(t *testing.T) {
 	t.Run("rejects invalid amount", func(t *testing.T) {
 		_, err := svc.InitiateTransfer(ctx, src, dst, 0, "", "")
 		require.Error(t, err)
+	})
+
+	t.Run("fraud rejection blocks transfer", func(t *testing.T) {
+		svcBlocked := NewTransactionService(newMemTxRepo(), &memOutboxRepo{}, &stubFraud{decision: "REJECTED"})
+		_, err := svcBlocked.InitiateTransfer(ctx, src, dst, 5000, "blocked", "key-fraud")
+		require.Error(t, err)
+		var de *apperrors.DomainError
+		require.ErrorAs(t, err, &de)
+		assert.Equal(t, apperrors.CodePermissionDenied, de.Code)
 	})
 }
 

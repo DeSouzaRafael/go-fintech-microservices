@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package fintech.fraud.v1;
+
+option go_package = "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/fraud/v1;fraudv1";
+
+import "google/protobuf/timestamp.proto";
+
+service FraudService {
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse) {}
+}
+
+enum Decision {
+  DECISION_UNSPECIFIED = 0;
+  DECISION_APPROVED = 1;
+  DECISION_REJECTED = 2;
+  DECISION_REVIEW = 3;
+}
+
+message EvaluateRequest {
+  string transaction_id = 1;
+  string user_id = 2;
+  string wallet_id = 3;
+  int64 amount_cents = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+}
+
+message EvaluateResponse {
+  string transaction_id = 1;
+  Decision decision = 2;
+  string reason = 3;
+}

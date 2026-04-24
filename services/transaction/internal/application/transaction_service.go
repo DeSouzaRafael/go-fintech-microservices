@@ -13,13 +13,18 @@ import (
 
 const topicTransactions = "transactions"
 
-type TransactionService struct {
-	txRepo     domain.TransactionRepository
-	outboxRepo domain.OutboxRepository
+type FraudChecker interface {
+	Evaluate(ctx context.Context, txID, userID, walletID uuid.UUID, amountCents int64) (string, error)
 }
 
-func NewTransactionService(txRepo domain.TransactionRepository, outboxRepo domain.OutboxRepository) *TransactionService {
-	return &TransactionService{txRepo: txRepo, outboxRepo: outboxRepo}
+type TransactionService struct {
+	txRepo domain.TransactionRepository
+	outbox domain.OutboxRepository
+	fraud  FraudChecker
+}
+
+func NewTransactionService(txRepo domain.TransactionRepository, outboxRepo domain.OutboxRepository, fraud FraudChecker) *TransactionService {
+	return &TransactionService{txRepo: txRepo, outbox: outboxRepo, fraud: fraud}
 }
 
 type InitiateResult struct {
@@ -43,6 +48,16 @@ func (s *TransactionService) InitiateTransfer(ctx context.Context, sourceWalletI
 	tx, err := domain.NewTransaction(sourceWalletID, destWalletID, amountCents, description, idempotencyKey)
 	if err != nil {
 		return InitiateResult{}, err
+	}
+
+	if s.fraud != nil {
+		decision, err := s.fraud.Evaluate(ctx, tx.ID, uuid.Nil, sourceWalletID, amountCents)
+		if err != nil {
+			return InitiateResult{}, errors.Wrap(errors.CodeInternal, "fraud check", err)
+		}
+		if decision == "REJECTED" {
+			return InitiateResult{}, errors.New(errors.CodePermissionDenied, "transaction rejected by fraud check")
+		}
 	}
 
 	payload, err := json.Marshal(domain.TransactionInitiatedPayload{
@@ -69,7 +84,7 @@ func (s *TransactionService) InitiateTransfer(ctx context.Context, sourceWalletI
 		return InitiateResult{}, err
 	}
 
-	if err := s.outboxRepo.Save(ctx, outboxEvent); err != nil {
+	if err := s.outbox.Save(ctx, outboxEvent); err != nil {
 		return InitiateResult{}, err
 	}
 
@@ -111,7 +126,7 @@ func (s *TransactionService) CompleteTransaction(ctx context.Context, txID uuid.
 		return err
 	}
 
-	return s.outboxRepo.Save(ctx, outboxEvent)
+	return s.outbox.Save(ctx, outboxEvent)
 }
 
 func (s *TransactionService) FailTransaction(ctx context.Context, txID uuid.UUID, reason string) error {
@@ -144,7 +159,7 @@ func (s *TransactionService) FailTransaction(ctx context.Context, txID uuid.UUID
 		return err
 	}
 
-	return s.outboxRepo.Save(ctx, outboxEvent)
+	return s.outbox.Save(ctx, outboxEvent)
 }
 
 func (s *TransactionService) GetTransaction(ctx context.Context, txID uuid.UUID) (*domain.Transaction, error) {

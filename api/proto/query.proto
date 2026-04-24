@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package fintech.query.v1;
+
+option go_package = "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/query/v1;queryv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service QueryService {
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {
+    option (google.api.http) = {
+      get: "/v1/query/wallets/{wallet_id}/balance"
+    };
+  }
+
+  rpc GetStatement(GetStatementRequest) returns (GetStatementResponse) {
+    option (google.api.http) = {
+      get: "/v1/query/wallets/{wallet_id}/statement"
+    };
+  }
+
+  rpc GetUserStats(GetUserStatsRequest) returns (GetUserStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/query/users/{user_id}/stats"
+    };
+  }
+}
+
+message GetBalanceRequest {
+  string wallet_id = 1;
+}
+
+message GetBalanceResponse {
+  string wallet_id = 1;
+  string user_id = 2;
+  int64 balance_cents = 3;
+  string currency = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message GetStatementRequest {
+  string wallet_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message StatementEntry {
+  string id = 1;
+  string wallet_id = 2;
+  string type = 3;
+  int64 amount_cents = 4;
+  string description = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}
+
+message GetStatementResponse {
+  repeated StatementEntry entries = 1;
+}
+
+message GetUserStatsRequest {
+  string user_id = 1;
+}
+
+message GetUserStatsResponse {
+  string user_id = 1;
+  int64 total_sent_cents = 2;
+  int64 total_received_cents = 3;
+  int64 transaction_count = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
