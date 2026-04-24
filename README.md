@@ -89,16 +89,16 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] Integration tests with testcontainers-go
 
 ### 3 — Transactions & Saga
-- [ ] Transaction Service: `TransactionInitiated` → Kafka
+- [x] Transaction Service: `TransactionInitiated` → Kafka
 - [ ] Wallet Service: consume `TransactionInitiated`, reserve funds → `FundsReserved`
 - [ ] Transaction Service: consume `FundsReserved`, trigger credit
 - [ ] Wallet Service: credit destination → `FundsDeposited`
-- [ ] Transaction Service: `TransactionCompleted`
-- [ ] Compensation flow: `FundsReleased` on failure
-- [ ] Transactional Outbox in Wallet and Transaction services
-- [ ] Outbox worker: poll → publish → mark sent
-- [ ] Idempotency via `event_id` deduplication table
-- [ ] Integration tests: happy path + simulated failures
+- [x] Transaction Service: `TransactionCompleted`
+- [x] Compensation flow: `FundsReleased` on failure
+- [x] Transactional Outbox in Wallet and Transaction services
+- [x] Outbox worker: poll → publish → mark sent
+- [x] Idempotency via `event_id` deduplication table
+- [x] Integration tests: happy path + simulated failures
 
 ### 4 — Fraud & Notifications
 - [ ] Fraud Service: daily limit rule
