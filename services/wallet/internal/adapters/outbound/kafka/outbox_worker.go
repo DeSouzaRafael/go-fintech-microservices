@@ -10,18 +10,18 @@ import (
 	"go.uber.org/zap"
 
 	pkgbreaker "github.com/DeSouzaRafael/go-fintech-microservices/pkg/breaker"
-	"github.com/DeSouzaRafael/go-fintech-microservices/services/transaction/internal/domain"
+	"github.com/DeSouzaRafael/go-fintech-microservices/services/wallet/internal/domain"
 )
 
 type OutboxWorker struct {
-	outbox  domain.OutboxRepository
+	outbox  domain.WalletOutboxRepository
 	client  *kgo.Client
 	logger  *zap.Logger
 	ticker  *time.Ticker
 	breaker *gobreaker.CircuitBreaker
 }
 
-func NewOutboxWorker(outbox domain.OutboxRepository, brokers []string, logger *zap.Logger) (*OutboxWorker, error) {
+func NewOutboxWorker(outbox domain.WalletOutboxRepository, brokers []string, logger *zap.Logger) (*OutboxWorker, error) {
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(brokers...),
 		kgo.RequiredAcks(kgo.AllISRAcks()),
@@ -35,7 +35,7 @@ func NewOutboxWorker(outbox domain.OutboxRepository, brokers []string, logger *z
 		client:  client,
 		logger:  logger,
 		ticker:  time.NewTicker(500 * time.Millisecond),
-		breaker: pkgbreaker.New("transaction-kafka-publish"),
+		breaker: pkgbreaker.New("wallet-kafka-publish"),
 	}, nil
 }
 
