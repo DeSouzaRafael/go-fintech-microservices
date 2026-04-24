@@ -1,60 +1,117 @@
-# Observability Setup
+# Observability
 
 ## Stack
 
-| Tool | Role | URL (local) |
-|------|------|-------------|
-| OpenTelemetry SDK | Instrumentation in every service | — |
-| Jaeger | Distributed trace collection + UI | http://localhost:16686 |
-| Prometheus | Metrics scraping | http://localhost:9090 |
-| Grafana | Dashboards | http://localhost:13000 (admin/admin) |
+| Tool | Role | Port |
+|------|------|------|
+| OpenTelemetry SDK | Traces + metrics in every service | — |
+| Jaeger (OTLP) | Distributed trace collection & UI | 16686 |
+| Prometheus | Metrics scraping (15s interval) | 9090 |
+| Grafana | Dashboards | 13000 |
 
-## Distributed Tracing (Jaeger)
+All 7 services expose `/metrics` (OTel Prometheus exporter) and send OTLP traces to Jaeger on startup.
 
-Every service exports OTLP traces to Jaeger via gRPC on port 4317.  
-Each inbound gRPC call is automatically traced via `UnaryTracing` interceptor in `pkg/middleware`.
+---
 
-**Screenshots:**
+## Service Health — Prometheus Targets
 
-![Jaeger UI](screenshots/jaeger-ui.png)
-![Jaeger Architecture](screenshots/jaeger-architecture.png)
+All 7 microservices registered and scraped successfully.
 
-## Grafana Dashboards
+![Prometheus targets — all UP](screenshots/prometheus-targets-all-up.png)
 
-Two dashboards are auto-provisioned from `deploy/grafana/dashboards/`:
+### Live Runtime Stats (collected 2026-04-24)
 
-### Fintech Services — RED Metrics
-- gRPC request rate per service
-- Error rate per service  
-- p50 / p95 / p99 latency panels
-- Per-service SLO stat panels (target: p99 < 200ms)
+| Service | Goroutines | Heap | Open FDs |
+|---------|-----------|------|----------|
+| identity | 20 | 3.38 MB | 15 |
+| wallet | 16 | 5.51 MB | 11 |
+| transaction | 14 | 5.36 MB | 10 |
+| fraud | 19 | 7.20 MB | 13 |
+| notification | 14 | 6.22 MB | 10 |
+| query | 14 | 5.51 MB | 10 |
+| gateway | 35 | 3.98 MB | 12 |
 
-![RED Metrics Dashboard](screenshots/grafana-red-dashboard.png)
+Low heap footprint — smallest service (identity) runs at **3.4 MB** under load. Gateway has more goroutines due to HTTP connection handling.
 
-### Fintech — Kafka & Outbox
-- Consumer group lag per topic
-- Unpublished outbox event queue depth
-- Outbox publish error rate
-- Circuit breaker state per service
+---
 
-![Kafka & Outbox Dashboard](screenshots/grafana-kafka-dashboard.png)
+## Distributed Tracing — Jaeger
 
-![Dashboard list](screenshots/grafana-dashboards.png)
+Every gRPC call is instrumented via the `UnaryTracing` interceptor in `pkg/middleware`. Traces ship to Jaeger over OTLP gRPC on port 4317.
 
-## Prometheus
+### Trace list — Identity Service (Login endpoint, 80 requests)
 
-Metrics exposed via `/metrics` on each service (port 9101–9107) using OTel Prometheus exporter (`pkg/metrics`).  
-Scraped by Prometheus per `deploy/grafana/provisioning/prometheus.yml`.
+![Jaeger traces list](screenshots/jaeger-traces-list.png)
 
-![Prometheus](screenshots/prometheus.png)
+Observed p50 ≈ **49–51ms** for `/fintech.identity.v1.IdentityService/Login` — includes bcrypt verification (~48ms) + Postgres token write.
+
+### Single trace detail
+
+![Jaeger trace detail](screenshots/jaeger-trace-detail.png)
+
+Span shows the full gRPC duration with OTel attributes. Service name, operation, and trace ID are propagated automatically.
+
+---
+
+## Metrics — Prometheus + Grafana
+
+Grafana is provisioned automatically from `deploy/grafana/dashboards/`. Two dashboards in the **Fintech** folder:
+
+- **Fintech Services — RED Metrics** — request rate, error rate, p50/p95/p99 latency per service
+- **Fintech — Kafka & Outbox** — consumer lag, unpublished outbox depth, circuit breaker state
+
+### Go runtime metrics across all services
+
+![Prometheus — goroutines per service](screenshots/prometheus-all-services.png)
+
+### Grafana Explore — real-time goroutine count per service
+
+![Grafana Explore — goroutines](screenshots/grafana-explore-goroutines.png)
+
+---
 
 ## Starting the Stack
 
 ```bash
+# 1. Infrastructure
 docker compose -f deploy/docker-compose.yml up -d
+
+# 2. Migrations
 make migrate-up
-# start services, then open:
-# Jaeger:     http://localhost:16686
-# Grafana:    http://localhost:13000
-# Prometheus: http://localhost:9090
+
+# 3. Services (example — identity)
+PORT=50052 METRICS_PORT=9102 \
+  DB_DSN="postgres://fintech:fintech@localhost:15432/identity?sslmode=disable" \
+  JWT_SECRET="<secret>" \
+  OTEL_EXPORTER_OTLP_ENDPOINT="localhost:4317" \
+  ./services/identity/cmd/server/server
+
+# 4. Open UIs
+open http://localhost:16686   # Jaeger
+open http://localhost:13000   # Grafana (admin/admin)
+open http://localhost:9090    # Prometheus
 ```
+
+## Adding Metrics to a Service
+
+Every `cmd/server/main.go` calls `pkgmetrics.Setup()`:
+
+```go
+metricsSrv, err := pkgmetrics.Setup(pkgmetrics.Config{
+    ServiceName: "identity",
+    Port:        9102,          // matches prometheus.yml scrape config
+})
+defer func() { _ = metricsSrv.Shutdown(ctx) }()
+```
+
+Port assignment per `deploy/grafana/provisioning/prometheus.yml`:
+
+| Service | Metrics port |
+|---------|-------------|
+| wallet | 9101 |
+| identity | 9102 |
+| transaction | 9103 |
+| fraud | 9104 |
+| notification | 9105 |
+| query | 9106 |
+| gateway | 9107 |

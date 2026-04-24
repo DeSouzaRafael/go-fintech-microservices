@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/logger"
+	pkgmetrics "github.com/DeSouzaRafael/go-fintech-microservices/pkg/metrics"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/tracing"
 	"github.com/DeSouzaRafael/go-fintech-microservices/services/gateway/internal/middleware"
 	"github.com/DeSouzaRafael/go-fintech-microservices/services/gateway/internal/router"
@@ -39,6 +40,15 @@ func run() error {
 		return fmt.Errorf("tracing setup: %w", err)
 	}
 	defer func() { _ = shutdown(ctx) }()
+
+	metricsSrv, err := pkgmetrics.Setup(pkgmetrics.Config{
+		ServiceName: "gateway",
+		Port:        getEnvInt("METRICS_PORT", 9107),
+	})
+	if err != nil {
+		return fmt.Errorf("metrics setup: %w", err)
+	}
+	defer func() { _ = metricsSrv.Shutdown(ctx) }()
 
 	gwMux, err := router.New(ctx, router.Config{
 		IdentityAddr:    getEnv("IDENTITY_ADDR", "localhost:50052"),

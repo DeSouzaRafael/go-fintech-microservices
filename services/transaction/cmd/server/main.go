@@ -11,6 +11,7 @@ import (
 
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/logger"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/middleware"
+	pkgmetrics "github.com/DeSouzaRafael/go-fintech-microservices/pkg/metrics"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/server"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/tracing"
 )
@@ -39,6 +40,15 @@ func run() error {
 	}
 	defer func() { _ = shutdown(ctx) }()
 
+	metricsSrv, err := pkgmetrics.Setup(pkgmetrics.Config{
+		ServiceName: "transaction",
+		Port:        getEnvInt("METRICS_PORT", 9103),
+	})
+	if err != nil {
+		return fmt.Errorf("metrics setup: %w", err)
+	}
+	defer func() { _ = metricsSrv.Shutdown(ctx) }()
+
 	chain := middleware.ChainUnary(
 		middleware.UnaryRecovery(log),
 		middleware.UnaryTracing(),
@@ -48,14 +58,14 @@ func run() error {
 
 	srv := server.NewGRPC(
 		server.Config{
-			Port:            getEnvInt("PORT", 50051),
+			Port:            getEnvInt("PORT", 50054),
 			ShutdownTimeout: 30 * time.Second,
 		},
 		log,
 		middleware.WithUnaryInterceptor(chain),
 	)
 
-	log.Info("starting server", zap.String("service", "transaction"), zap.Int("port", getEnvInt("PORT", 50051)))
+	log.Info("starting server", zap.String("service", "transaction"), zap.Int("port", getEnvInt("PORT", 50054)))
 
 	return srv.Run(ctx)
 }

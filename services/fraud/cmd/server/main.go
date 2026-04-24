@@ -12,6 +12,7 @@ import (
 
 	fraudv1 "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/fraud/v1"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/logger"
+	pkgmetrics "github.com/DeSouzaRafael/go-fintech-microservices/pkg/metrics"
 	pkgmw "github.com/DeSouzaRafael/go-fintech-microservices/pkg/middleware"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/server"
 	"github.com/DeSouzaRafael/go-fintech-microservices/pkg/tracing"
@@ -58,6 +59,15 @@ func run() error {
 		return fmt.Errorf("kafka profile updater: %w", err)
 	}
 	go updater.Run(ctx)
+
+	metricsSrv, err := pkgmetrics.Setup(pkgmetrics.Config{
+		ServiceName: "fraud",
+		Port:        getEnvInt("METRICS_PORT", 9104),
+	})
+	if err != nil {
+		return fmt.Errorf("metrics setup: %w", err)
+	}
+	defer func() { _ = metricsSrv.Shutdown(ctx) }()
 
 	chain := pkgmw.ChainUnary(
 		pkgmw.UnaryRecovery(log),
