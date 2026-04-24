@@ -1,5 +1,10 @@
 # Fintech Microservices Platform
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/DeSouzaRafael/go-fintech-microservices)](https://goreportcard.com/report/github.com/DeSouzaRafael/go-fintech-microservices)
+[![CI](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/DeSouzaRafael/go-fintech-microservices.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/blob/main/LICENSE)
+[![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?logo=go)](https://go.dev/)
+
 High-scale digital wallet platform built with Go microservices, demonstrating advanced distributed systems patterns: CQRS, Event Sourcing, Saga, Transactional Outbox, and full observability.
 
 ## Architecture
@@ -61,16 +66,15 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 ## Implementation Roadmap
 
 ### 1 — Foundation
-- [ ] Monorepo structure with all service skeletons
-- [ ] Shared `.proto` contracts (`wallet.proto`, `transaction.proto`, `identity.proto`)
-- [ ] `pkg/logger` — structured JSON logging (zap)
-- [ ] `pkg/tracing` — OpenTelemetry SDK setup
-- [ ] `pkg/errors` — standardized error types
-- [ ] `pkg/middleware` — gRPC interceptors (auth, tracing, logging, recovery)
-- [ ] Docker Compose: PostgreSQL, Redis, Redpanda, Jaeger, Prometheus, Grafana
-- [ ] Service skeleton with gRPC + OTel + graceful shutdown
-- [ ] "Hello world" gRPC endpoint with traces visible in Jaeger
-- [ ] GitHub Actions: lint + build pipeline
+- [x] Monorepo structure with all service skeletons
+- [x] Shared `.proto` contracts (`wallet.proto`, `transaction.proto`, `identity.proto`)
+- [x] `pkg/logger` — structured JSON logging (zap)
+- [x] `pkg/tracing` — OpenTelemetry SDK setup
+- [x] `pkg/errors` — standardized error types
+- [x] `pkg/middleware` — gRPC interceptors (auth, tracing, logging, recovery)
+- [x] Docker Compose: PostgreSQL, Redis, Redpanda, Jaeger, Prometheus, Grafana
+- [x] Service skeleton with gRPC + OTel + graceful shutdown
+- [x] GitHub Actions: lint + build pipeline
 
 ### 2 — Identity & Wallet
 - [ ] Identity Service: signup, login, JWT issuance
@@ -138,7 +142,8 @@ fintech-platform/
 │   ├── logger/
 │   ├── tracing/
 │   ├── errors/
-│   └── middleware/
+│   ├── middleware/
+│   └── server/
 ├── services/
 │   ├── identity/
 │   ├── wallet/
