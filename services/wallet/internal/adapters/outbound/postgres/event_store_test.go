@@ -160,3 +160,63 @@ func TestEventSourcing_ReconstitutFromEvents(t *testing.T) {
 	assert.Equal(t, int64(7000), rebuilt.BalanceCents)
 	assert.Equal(t, original.Version, rebuilt.Version)
 }
+
+func TestWalletOutboxRepository(t *testing.T) {
+	db := setupDB(t)
+	repo := pgadapter.NewWalletOutboxRepository(db)
+	ctx := context.Background()
+
+	event := &domain.WalletOutboxEvent{
+		ID:        uuid.New(),
+		Topic:     "wallet-events",
+		Key:       uuid.New().String(),
+		Payload:   []byte(`{"wallet_id":"abc"}`),
+		EventType: domain.OutboxFundsReserved,
+	}
+
+	t.Run("saves event", func(t *testing.T) {
+		require.NoError(t, repo.Save(ctx, event))
+	})
+
+	t.Run("fetches unpublished", func(t *testing.T) {
+		events, err := repo.FetchUnpublished(ctx, 10)
+		require.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, event.ID, events[0].ID)
+		assert.Nil(t, events[0].PublishedAt)
+	})
+
+	t.Run("marks published", func(t *testing.T) {
+		require.NoError(t, repo.MarkPublished(ctx, event.ID))
+
+		events, err := repo.FetchUnpublished(ctx, 10)
+		require.NoError(t, err)
+		assert.Empty(t, events)
+	})
+}
+
+func TestProcessedEventRepository(t *testing.T) {
+	db := setupDB(t)
+	repo := pgadapter.NewProcessedEventRepository(db)
+	ctx := context.Background()
+
+	eventID := uuid.New()
+
+	t.Run("not processed initially", func(t *testing.T) {
+		ok, err := repo.IsProcessed(ctx, eventID)
+		require.NoError(t, err)
+		assert.False(t, ok)
+	})
+
+	t.Run("marks and checks processed", func(t *testing.T) {
+		require.NoError(t, repo.MarkProcessed(ctx, eventID))
+
+		ok, err := repo.IsProcessed(ctx, eventID)
+		require.NoError(t, err)
+		assert.True(t, ok)
+	})
+
+	t.Run("idempotent mark processed", func(t *testing.T) {
+		require.NoError(t, repo.MarkProcessed(ctx, eventID))
+	})
+}

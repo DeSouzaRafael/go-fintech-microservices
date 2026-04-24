@@ -147,6 +147,59 @@ func (s *WalletService) load(ctx context.Context, walletID uuid.UUID) (*domain.W
 	return wallet, nil
 }
 
+func (s *WalletService) ReserveForTransaction(ctx context.Context, walletID uuid.UUID, amountCents int64, transactionID uuid.UUID) error {
+	wallet, err := s.load(ctx, walletID)
+	if err != nil {
+		return err
+	}
+
+	prevVersion := wallet.Version
+	if err := wallet.Reserve(amountCents, transactionID); err != nil {
+		return err
+	}
+
+	if err := s.events.AppendEvents(ctx, walletID, wallet.Changes(), prevVersion); err != nil {
+		return err
+	}
+
+	return s.maybeSnapshot(ctx, wallet)
+}
+
+func (s *WalletService) CreditForTransaction(ctx context.Context, walletID uuid.UUID, amountCents int64, transactionID uuid.UUID) error {
+	wallet, err := s.load(ctx, walletID)
+	if err != nil {
+		return err
+	}
+
+	prevVersion := wallet.Version
+	if err := wallet.Deposit(amountCents, "saga credit"); err != nil {
+		return err
+	}
+	_ = transactionID
+
+	if err := s.events.AppendEvents(ctx, walletID, wallet.Changes(), prevVersion); err != nil {
+		return err
+	}
+
+	return s.maybeSnapshot(ctx, wallet)
+}
+
+func (s *WalletService) ReleaseReservation(ctx context.Context, walletID uuid.UUID, amountCents int64, transactionID uuid.UUID) error {
+	wallet, err := s.load(ctx, walletID)
+	if err != nil {
+		return err
+	}
+
+	prevVersion := wallet.Version
+	wallet.Release(amountCents, transactionID)
+
+	if err := s.events.AppendEvents(ctx, walletID, wallet.Changes(), prevVersion); err != nil {
+		return err
+	}
+
+	return s.maybeSnapshot(ctx, wallet)
+}
+
 func (s *WalletService) maybeSnapshot(ctx context.Context, w *domain.Wallet) error {
 	if w.Version%domain.SnapshotInterval == 0 {
 		return s.snapshots.SaveSnapshot(ctx, w)
