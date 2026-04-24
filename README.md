@@ -123,14 +123,14 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [ ] OpenAPI spec generated from proto annotations
 
 ### 6 — Observability, Resilience & Load
-- [ ] Grafana dashboards: RED metrics per service
-- [ ] Grafana dashboards: p50/p95/p99 latency panels
-- [ ] Grafana dashboards: Kafka consumer lag
-- [ ] Circuit breakers (`sony/gobreaker`) on inter-service calls
-- [ ] Retry with exponential backoff on Kafka publish
-- [ ] k6 load test: 1,000 TPS baseline
-- [ ] k6 load test: 10,000 TPS stress
-- [ ] Architecture Decision Records (ADRs)
+- [x] Grafana dashboards: RED metrics per service
+- [x] Grafana dashboards: p50/p95/p99 latency panels
+- [x] Grafana dashboards: Kafka consumer lag
+- [x] Circuit breakers (`sony/gobreaker`) on inter-service calls
+- [x] Retry with exponential backoff on Kafka publish
+- [x] k6 load test: 1,000 TPS baseline
+- [x] k6 load test: 10,000 TPS stress
+- [x] Architecture Decision Records (ADRs)
 - [ ] Distributed trace screenshots (Jaeger)
 - [ ] Load test results in `docs/`
 

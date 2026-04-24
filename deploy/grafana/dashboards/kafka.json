@@ -1,0 +1,186 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "description": "Kafka consumer lag and outbox queue depth for fintech services",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Consumer Lag",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "short",
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1000 },
+            { "color": "red", "value": 5000 }
+          ]}
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "lastNotNull"], "displayMode": "table" }
+      },
+      "targets": [
+        {
+          "expr": "kafka_consumer_group_lag{topic=\"transactions\"}",
+          "legendFormat": "transactions / {{consumer_group}}",
+          "refId": "A"
+        },
+        {
+          "expr": "kafka_consumer_group_lag{topic=\"wallets\"}",
+          "legendFormat": "wallets / {{consumer_group}}",
+          "refId": "B"
+        },
+        {
+          "expr": "kafka_consumer_group_lag{topic=\"notifications\"}",
+          "legendFormat": "notifications / {{consumer_group}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Consumer Group Lag by Topic",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 10,
+      "title": "Outbox Queue Depth",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "fintech_outbox_unpublished_total{service=\"wallet\"}",
+          "legendFormat": "wallet",
+          "refId": "A"
+        },
+        {
+          "expr": "fintech_outbox_unpublished_total{service=\"transaction\"}",
+          "legendFormat": "transaction",
+          "refId": "B"
+        }
+      ],
+      "title": "Unpublished Outbox Events",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "rate(fintech_outbox_publish_errors_total[5m])",
+          "legendFormat": "{{service}} errors/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Outbox Publish Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 20,
+      "title": "Circuit Breaker Status",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "green", "text": "Closed" } }, "type": "value" },
+            { "options": { "1": { "color": "yellow", "text": "Half-Open" } }, "type": "value" },
+            { "options": { "2": { "color": "red", "text": "Open" } }, "type": "value" }
+          ],
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 2 }
+          ]}
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 19 },
+      "id": 21,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "fintech_circuit_breaker_state{name=\"wallet-kafka-publish\"}",
+          "legendFormat": "wallet kafka",
+          "refId": "A"
+        }
+      ],
+      "title": "Wallet Kafka CB",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "green", "text": "Closed" } }, "type": "value" },
+            { "options": { "1": { "color": "yellow", "text": "Half-Open" } }, "type": "value" },
+            { "options": { "2": { "color": "red", "text": "Open" } }, "type": "value" }
+          ],
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 2 }
+          ]}
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 19 },
+      "id": 22,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "fintech_circuit_breaker_state{name=\"transaction-kafka-publish\"}",
+          "legendFormat": "transaction kafka",
+          "refId": "A"
+        }
+      ],
+      "title": "Transaction Kafka CB",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["fintech", "kafka", "outbox"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Fintech — Kafka & Outbox",
+  "uid": "fintech-kafka-outbox",
+  "version": 1
+}
