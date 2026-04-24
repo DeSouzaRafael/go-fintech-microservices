@@ -86,7 +86,7 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] Wallet Service: state reconstruction via event replay
 - [x] Wallet Service: snapshots every N events for performance
 - [x] Unit tests for wallet domain (pure Go, no I/O)
-- [ ] Integration tests with testcontainers-go
+- [x] Integration tests with testcontainers-go
 
 ### 3 — Transactions & Saga
 - [ ] Transaction Service: `TransactionInitiated` → Kafka
