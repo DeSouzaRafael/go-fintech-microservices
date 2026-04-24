@@ -4,7 +4,7 @@
 [![CI](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml/badge.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices/branch/main/graph/badge.svg)](https://codecov.io/gh/DeSouzaRafael/go-fintech-microservices)
 [![License](https://img.shields.io/github/license/DeSouzaRafael/go-fintech-microservices.svg)](https://github.com/DeSouzaRafael/go-fintech-microservices/blob/main/LICENSE)
-[![Go Version](https://img.shields.io/badge/go-1.22+-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](https://go.dev/)
 
 High-scale digital wallet platform built with Go microservices, demonstrating advanced distributed systems patterns: CQRS, Event Sourcing, Saga, Transactional Outbox, and full observability.
 
@@ -42,7 +42,7 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 
 | Layer | Technology |
 |-------|------------|
-| Language | Go 1.22+ |
+| Language | Go 1.25+ |
 | RPC | gRPC + Protocol Buffers |
 | REST exposure | grpc-gateway |
 | Messaging | Apache Kafka (Redpanda in dev) |
