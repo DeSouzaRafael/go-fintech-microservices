@@ -93,13 +93,13 @@ func TestIdempotencyKeyFromContext_Empty(t *testing.T) {
 
 func TestChainUnary(t *testing.T) {
 	order := []int{}
-	make := func(n int) grpc.UnaryServerInterceptor {
+	newInterceptor := func(n int) grpc.UnaryServerInterceptor {
 		return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) {
 			order = append(order, n)
 			return h(ctx, req)
 		}
 	}
-	chain := ChainUnary(make(1), make(2), make(3))
+	chain := ChainUnary(newInterceptor(1), newInterceptor(2), newInterceptor(3))
 	_, err := chain(context.Background(), nil, testInfo, okHandler)
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 3}, order)

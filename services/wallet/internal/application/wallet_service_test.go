@@ -259,7 +259,6 @@ func TestWalletService_Withdraw_AppendError(t *testing.T) {
 }
 
 func TestWalletService_MaybeSnapshot_Error(t *testing.T) {
-	type errSnapshotStore struct{ memSnapshotStore }
 	store := newMemEventStore()
 	svc := NewWalletService(store, &capturingSnapshotStore{})
 	ctx := context.Background()
