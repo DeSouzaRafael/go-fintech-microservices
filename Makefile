@@ -1,6 +1,20 @@
 SERVICES := identity wallet transaction fraud notification query gateway
 
-.PHONY: build test test-integration lint infra-up infra-down proto tidy
+DB_HOST   ?= localhost
+DB_USER   ?= fintech
+DB_PASS   ?= fintech
+
+DB_PORT_identity     ?= 5432
+DB_PORT_wallet       ?= 5433
+DB_PORT_transaction  ?= 5434
+DB_PORT_fraud        ?= 5435
+DB_PORT_notification ?= 5436
+DB_PORT_query        ?= 5437
+
+db_url = "postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$(DB_PORT_$(1))/$(1)?sslmode=disable"
+
+.PHONY: build test lint infra-up infra-down infra-logs proto tidy \
+        migrate-install migrate-up migrate-down migrate-status migrate-create
 
 build:
 	@for svc in $(SERVICES); do \
@@ -9,10 +23,7 @@ build:
 	done
 
 test:
-	go test ./... -count=1 -race -timeout 60s
-
-test-integration:
-	go test ./tests/integration/... -count=1 -timeout 120s -tags integration
+	go test ./... -count=1 -race -timeout 120s
 
 lint:
 	golangci-lint run ./...
@@ -38,5 +49,43 @@ proto:
 
 tidy:
 	go mod tidy
+
+migrate-install:
+	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+migrate-up:
+	@for svc in $(SERVICES); do \
+		dir="services/$$svc/migrations"; \
+		if [ -d "$$dir" ]; then \
+			echo "▶ migrating $$svc..."; \
+			migrate -path "$$dir" \
+				-database "postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$$(eval echo \$$DB_PORT_$$svc)/$$svc?sslmode=disable" \
+				up || exit 1; \
+		fi \
+	done
+
+migrate-down:
+	@[ -n "$(SVC)" ] || (echo "usage: make migrate-down SVC=<service>" && exit 1)
+	@[ -d "services/$(SVC)/migrations" ] || (echo "no migrations for $(SVC)" && exit 1)
+	migrate -path "services/$(SVC)/migrations" \
+		-database $(call db_url,$(SVC)) \
+		down 1
+
+migrate-status:
+	@for svc in $(SERVICES); do \
+		dir="services/$$svc/migrations"; \
+		if [ -d "$$dir" ]; then \
+			echo "▶ $$svc:"; \
+			migrate -path "$$dir" \
+				-database "postgres://$(DB_USER):$(DB_PASS)@$(DB_HOST):$$(eval echo \$$DB_PORT_$$svc)/$$svc?sslmode=disable" \
+				version 2>&1 || true; \
+		fi \
+	done
+
+migrate-create:
+	@[ -n "$(SVC)" ] || (echo "usage: make migrate-create SVC=<service> NAME=<name>" && exit 1)
+	@[ -n "$(NAME)" ] || (echo "usage: make migrate-create SVC=<service> NAME=<name>" && exit 1)
+	@mkdir -p services/$(SVC)/migrations
+	migrate create -ext sql -dir services/$(SVC)/migrations -seq $(NAME)
 
 .DEFAULT_GOAL := build
