@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package fintech.wallet.v1;
+
+option go_package = "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/wallet/v1;walletv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service WalletService {
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets"
+      body: "*"
+    };
+  }
+
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse) {
+    option (google.api.http) = {
+      get: "/v1/wallets/{wallet_id}/balance"
+    };
+  }
+
+  rpc Deposit(DepositRequest) returns (DepositResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}/deposit"
+      body: "*"
+    };
+  }
+
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}/withdraw"
+      body: "*"
+    };
+  }
+}
+
+message CreateWalletRequest {
+  string user_id = 1;
+  string currency = 2;
+  string idempotency_key = 3;
+}
+
+message CreateWalletResponse {
+  string wallet_id = 1;
+  google.protobuf.Timestamp created_at = 2;
+}
+
+message GetBalanceRequest {
+  string wallet_id = 1;
+}
+
+message GetBalanceResponse {
+  string wallet_id = 1;
+  int64 balance_cents = 2;
+  string currency = 3;
+  int64 version = 4;
+}
+
+message DepositRequest {
+  string wallet_id = 1;
+  int64 amount_cents = 2;
+  string description = 3;
+  string idempotency_key = 4;
+}
+
+message DepositResponse {
+  string event_id = 1;
+  int64 new_balance_cents = 2;
+  int64 version = 3;
+}
+
+message WithdrawRequest {
+  string wallet_id = 1;
+  int64 amount_cents = 2;
+  string description = 3;
+  string idempotency_key = 4;
+}
+
+message WithdrawResponse {
+  string event_id = 1;
+  int64 new_balance_cents = 2;
+  int64 version = 3;
+}

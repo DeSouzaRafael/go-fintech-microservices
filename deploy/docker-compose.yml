@@ -1,0 +1,195 @@
+services:
+  postgres-identity:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: identity
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-identity:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d identity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-wallet:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-wallet:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d wallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-transaction:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: transaction
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-transaction:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d transaction"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-fraud:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fraud
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-fraud:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d fraud"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-notification:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: notification
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-notification:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d notification"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-query:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: query
+      POSTGRES_USER: fintech
+      POSTGRES_PASSWORD: fintech
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-query:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech -d query"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=warn
+    ports:
+      - "18081:18081"
+      - "18082:18082"
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  redpanda-console:
+    image: redpandadata/console:latest
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redpanda
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./grafana/provisioning/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-identity:
+  postgres-wallet:
+  postgres-transaction:
+  postgres-fraud:
+  postgres-notification:
+  postgres-query:
+  redis:
+  redpanda:
+  prometheus:
+  grafana:

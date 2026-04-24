@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package fintech.transaction.v1;
+
+option go_package = "github.com/DeSouzaRafael/go-fintech-microservices/api/proto/transaction/v1;transactionv1";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service TransactionService {
+  rpc InitiateTransfer(InitiateTransferRequest) returns (InitiateTransferResponse) {
+    option (google.api.http) = {
+      post: "/v1/transactions/transfer"
+      body: "*"
+    };
+  }
+
+  rpc GetTransaction(GetTransactionRequest) returns (GetTransactionResponse) {
+    option (google.api.http) = {
+      get: "/v1/transactions/{transaction_id}"
+    };
+  }
+}
+
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_COMPLETED = 2;
+  TRANSACTION_STATUS_FAILED = 3;
+  TRANSACTION_STATUS_COMPENSATED = 4;
+}
+
+message InitiateTransferRequest {
+  string source_wallet_id = 1;
+  string destination_wallet_id = 2;
+  int64 amount_cents = 3;
+  string description = 4;
+  string idempotency_key = 5;
+}
+
+message InitiateTransferResponse {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message GetTransactionRequest {
+  string transaction_id = 1;
+}
+
+message GetTransactionResponse {
+  string transaction_id = 1;
+  string source_wallet_id = 2;
+  string destination_wallet_id = 3;
+  int64 amount_cents = 4;
+  TransactionStatus status = 5;
+  string failure_reason = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
