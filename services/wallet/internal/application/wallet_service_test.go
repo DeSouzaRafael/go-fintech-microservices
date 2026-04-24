@@ -236,3 +236,49 @@ func (s *capturingSnapshotStore) SaveSnapshot(_ context.Context, _ *domain.Walle
 func (s *capturingSnapshotStore) LoadSnapshot(_ context.Context, _ uuid.UUID) (*domain.Wallet, int64, error) {
 	return nil, 0, apperrors.New(apperrors.CodeNotFound, "no snapshot")
 }
+
+func TestWalletService_Deposit_AppendError(t *testing.T) {
+	store := newMemEventStore()
+	svc := NewWalletService(store, &memSnapshotStore{})
+	ctx := context.Background()
+	result, _ := svc.CreateWallet(ctx, uuid.New(), "BRL")
+	store.events[result.WalletID][0].Version = 99
+	_, err := svc.Deposit(ctx, result.WalletID, 100, "")
+	require.Error(t, err)
+}
+
+func TestWalletService_Withdraw_AppendError(t *testing.T) {
+	store := newMemEventStore()
+	svc := NewWalletService(store, &memSnapshotStore{})
+	ctx := context.Background()
+	result, _ := svc.CreateWallet(ctx, uuid.New(), "BRL")
+	_, _ = svc.Deposit(ctx, result.WalletID, 5000, "")
+	store.events[result.WalletID][1].Version = 99
+	_, err := svc.Withdraw(ctx, result.WalletID, 100, "")
+	require.Error(t, err)
+}
+
+func TestWalletService_MaybeSnapshot_Error(t *testing.T) {
+	type errSnapshotStore struct{ memSnapshotStore }
+	store := newMemEventStore()
+	svc := NewWalletService(store, &capturingSnapshotStore{})
+	ctx := context.Background()
+	result, _ := svc.CreateWallet(ctx, uuid.New(), "BRL")
+	for range domain.SnapshotInterval - 2 {
+		_, _ = svc.Deposit(ctx, result.WalletID, 1, "")
+	}
+	_, err := svc.Deposit(ctx, result.WalletID, 1, "")
+	require.NoError(t, err)
+}
+
+func TestWalletService_Load_WithSnapshot(t *testing.T) {
+	store := newMemEventStore()
+	snap := &capturingSnapshotStore{}
+	svc := NewWalletService(store, snap)
+	ctx := context.Background()
+	result, _ := svc.CreateWallet(ctx, uuid.New(), "BRL")
+	_, _ = svc.Deposit(ctx, result.WalletID, 100, "")
+	bal, err := svc.GetBalance(ctx, result.WalletID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(100), bal.BalanceCents)
+}
