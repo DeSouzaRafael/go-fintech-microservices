@@ -179,3 +179,60 @@ func TestWalletService_ReleaseReservation(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestWalletService_Errors_UnknownWallet(t *testing.T) {
+	svc := newTestService()
+	ctx := context.Background()
+	unknownID := uuid.New()
+
+	t.Run("deposit unknown wallet", func(t *testing.T) {
+		_, err := svc.Deposit(ctx, unknownID, 100, "")
+		require.Error(t, err)
+	})
+
+	t.Run("withdraw unknown wallet", func(t *testing.T) {
+		_, err := svc.Withdraw(ctx, unknownID, 100, "")
+		require.Error(t, err)
+	})
+
+	t.Run("reserve unknown wallet", func(t *testing.T) {
+		err := svc.ReserveForTransaction(ctx, unknownID, 100, uuid.New())
+		require.Error(t, err)
+	})
+
+	t.Run("credit unknown wallet", func(t *testing.T) {
+		err := svc.CreditForTransaction(ctx, unknownID, 100, uuid.New())
+		require.Error(t, err)
+	})
+
+	t.Run("release unknown wallet", func(t *testing.T) {
+		err := svc.ReleaseReservation(ctx, unknownID, 100, uuid.New())
+		require.Error(t, err)
+	})
+}
+
+func TestWalletService_MaybeSnapshot_TriggeredAtInterval(t *testing.T) {
+	store := newMemEventStore()
+	snapshots := &capturingSnapshotStore{}
+	svc := NewWalletService(store, snapshots)
+	ctx := context.Background()
+
+	result, err := svc.CreateWallet(ctx, uuid.New(), "BRL")
+	require.NoError(t, err)
+
+	for range domain.SnapshotInterval - 1 {
+		_, err = svc.Deposit(ctx, result.WalletID, 100, "fill")
+		require.NoError(t, err)
+	}
+	assert.Equal(t, 1, snapshots.count)
+}
+
+type capturingSnapshotStore struct{ count int }
+
+func (s *capturingSnapshotStore) SaveSnapshot(_ context.Context, _ *domain.Wallet) error {
+	s.count++
+	return nil
+}
+func (s *capturingSnapshotStore) LoadSnapshot(_ context.Context, _ uuid.UUID) (*domain.Wallet, int64, error) {
+	return nil, 0, apperrors.New(apperrors.CodeNotFound, "no snapshot")
+}

@@ -46,7 +46,7 @@ func setupDB(t *testing.T) *sqlx.DB {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 
-	schema, err := os.ReadFile("../../../../migrations/001_create_tables.sql")
+	schema, err := os.ReadFile("../../../../migrations/000001_create_tables.up.sql")
 	require.NoError(t, err)
 	_, err = db.ExecContext(ctx, string(schema))
 	require.NoError(t, err)

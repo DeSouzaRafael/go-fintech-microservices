@@ -120,7 +120,7 @@ Each service owns its database (PostgreSQL). Redis for caching and rate limiting
 - [x] API Gateway: full grpc-gateway setup
 - [x] API Gateway: JWT validation middleware
 - [x] API Gateway: route all services
-- [ ] OpenAPI spec generated from proto annotations
+- [x] OpenAPI spec generated from proto annotations
 
 ### 6 — Observability, Resilience & Load
 - [x] Grafana dashboards: RED metrics per service

@@ -46,6 +46,14 @@ proto:
 		-I api/proto \
 		-I third_party/googleapis \
 		api/proto/*.proto
+	@mkdir -p docs/openapi
+	protoc \
+		--openapiv2_out=docs/openapi \
+		--openapiv2_opt=allow_merge=true \
+		--openapiv2_opt=merge_file_name=fintech \
+		-I api/proto \
+		-I third_party/googleapis \
+		api/proto/identity.proto api/proto/wallet.proto api/proto/transaction.proto api/proto/query.proto
 
 tidy:
 	go mod tidy

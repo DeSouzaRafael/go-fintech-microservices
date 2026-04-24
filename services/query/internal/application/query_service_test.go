@@ -150,3 +150,106 @@ func TestQueryService_UnknownEvent_Ignored(t *testing.T) {
 	r := makeRecord("SomeOtherEvent", uuid.New().String(), map[string]any{})
 	require.NoError(t, svc.HandleEvent(ctx, r))
 }
+
+func TestQueryService_TransactionCompleted(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	userID := uuid.New()
+
+	r := makeRecord("TransactionCompleted", uuid.New().String(), map[string]any{
+		"user_id":      userID,
+		"amount_cents": int64(2500),
+	})
+	require.NoError(t, svc.HandleEvent(ctx, r))
+
+	stats, err := svc.GetStats(ctx, userID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), stats.TotalTransactions)
+	assert.Equal(t, int64(2500), stats.TotalDepositCents)
+}
+
+func TestQueryService_TransactionCompleted_Accumulates(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	userID := uuid.New()
+
+	for i := 0; i < 3; i++ {
+		r := makeRecord("TransactionCompleted", uuid.New().String(), map[string]any{
+			"user_id":      userID,
+			"amount_cents": int64(1000),
+		})
+		require.NoError(t, svc.HandleEvent(ctx, r))
+	}
+
+	stats, err := svc.GetStats(ctx, userID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), stats.TotalTransactions)
+	assert.Equal(t, int64(3000), stats.TotalDepositCents)
+}
+
+func TestQueryService_GetBalance_NotFound(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	_, err := svc.GetBalance(ctx, uuid.New())
+	require.Error(t, err)
+}
+
+func TestQueryService_GetStats_NotFound(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	_, err := svc.GetStats(ctx, uuid.New())
+	require.Error(t, err)
+}
+
+func TestQueryService_GetStatement_Empty(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	entries, err := svc.GetStatement(ctx, uuid.New(), 10, 0)
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+func TestQueryService_HandleEvent_MissingEventID(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	r := &kgo.Record{
+		Value: []byte(`{}`),
+		Headers: []kgo.RecordHeader{
+			{Key: "event_type", Value: []byte("FundsDeposited")},
+		},
+	}
+	require.NoError(t, svc.HandleEvent(ctx, r))
+}
+
+func TestQueryService_WalletCreated_DuplicateIgnored(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	walletID, userID := uuid.New(), uuid.New()
+
+	r := makeRecord("WalletCreated", uuid.New().String(), map[string]any{
+		"wallet_id": walletID, "user_id": userID, "currency": "USD",
+	})
+	require.NoError(t, svc.HandleEvent(ctx, r))
+	require.NoError(t, svc.HandleEvent(ctx, r))
+
+	wallets, err := svc.balances.FindByUserID(ctx, userID)
+	require.NoError(t, err)
+	assert.Len(t, wallets, 1)
+}
+
+func TestQueryService_FundsWithdrawn_UpdatesBalance(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	walletID, userID := uuid.New(), uuid.New()
+
+	_ = svc.HandleEvent(ctx, makeRecord("WalletCreated", uuid.New().String(), map[string]any{"wallet_id": walletID, "user_id": userID, "currency": "BRL"}))
+	_ = svc.HandleEvent(ctx, makeRecord("FundsDeposited", uuid.New().String(), map[string]any{"wallet_id": walletID, "amount_cents": int64(10000), "description": "", "version": int64(2), "event_id": uuid.New(), "occurred_at": time.Now()}))
+	_ = svc.HandleEvent(ctx, makeRecord("FundsWithdrawn", uuid.New().String(), map[string]any{"wallet_id": walletID, "amount_cents": int64(4000), "description": "fee", "version": int64(3), "event_id": uuid.New(), "occurred_at": time.Now()}))
+
+	bal, _ := svc.GetBalance(ctx, walletID)
+	assert.Equal(t, int64(6000), bal.BalanceCents)
+
+	stmt, _ := svc.GetStatement(ctx, walletID, 10, 0)
+	assert.Len(t, stmt, 2)
+	assert.Equal(t, "WITHDRAWAL", stmt[1].Type)
+}
